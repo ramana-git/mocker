@@ -1,21 +1,28 @@
 use axum::{extract::Path, http::StatusCode, response::IntoResponse, routing::get, Json, Router};
+use std::net::SocketAddr;
 use std::time::SystemTime;
 
 #[tokio::main]
 async fn main() {
-    // build our application with a single route
     let app = Router::new().route("/", get(root))
-    .route("/sleep/:duration", get(sleep));
+        .route("/sleep/:duration", get(sleep));
 
-    // run it with hyper on localhost:3000
-    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+    let port = std::env::var("PORT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(8080);
+
+    let address = SocketAddr::from(([0, 0, 0, 0], port));
+    
+    println!("Server Listening on {:?}",address);
+    axum::Server::bind(&address)
         .serve(app.into_make_service())
         .await
-        .unwrap();
+        .unwrap();    
 }
 
 async fn root() -> &'static str {
-    "/sleep/:time"
+    "/sleep/:duration"
 }
 
 #[derive(serde::Serialize)]
@@ -23,20 +30,18 @@ struct Sleep {
     start: SystemTime,
     end: SystemTime,
     duration: u64,
-    message: String,
+    message: &'static str,
 }
 
 async fn sleep(Path(duration): Path<u64>) -> impl IntoResponse {
     let start = SystemTime::now();
     tokio::time::sleep(tokio::time::Duration::from_millis(duration)).await;
     let end = SystemTime::now();
-    (
-        StatusCode::OK,
+    (StatusCode::OK,
         Json(Sleep {
-            duration,
-            message: "Success".to_owned(),
             start,
             end,
-        }),
+            duration,
+            message: "Success"})
     )
 }
