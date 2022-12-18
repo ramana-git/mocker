@@ -6,7 +6,7 @@ COPY ./src ./src
 RUN cargo build --release
 
 #FROM debian:bullseye-slim
-FROM redhat/ubi8-micro:latest
+FROM redhat/ubi9-micro:latest
 COPY --from=builder /mocker/target/release/mocker /usr/local/bin/mocker
 CMD ["mocker"]
 
